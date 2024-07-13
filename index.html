@@ -1,0 +1,80 @@
+<!DOCTYPE html> 
+<html> 
+<head> 
+<title>FTP ファイルアップロード</title> 
+</head> 
+<body> 
+ 
+  <input type="file" id="fileInput"> 
+  <button id="uploadButton">アップロード</button> 
+  ファイルURL: <span id="fileUrl"></span> 
+ 
+  <script> 
+    const fileInput = document.getElementById('fileInput'); 
+    const uploadButton = document.getElementById('uploadButton'); 
+    const fileUrlSpan = document.getElementById('fileUrl'); 
+ 
+    uploadButton.addEventListener('click', () => { 
+      const file = fileInput.files[0]; 
+ 
+      if (file) { 
+        // ファイル名をランダムな名前に変更 
+        const randomName = generateRandomString(16); // 例えば、16文字のランダムな文字列を生成 
+        const newFileName = `${randomName}${file.name.substring(file.name.lastIndexOf('.'))}` 
+ 
+        // FTPサーバへの接続設定 
+        const ftpConfig = { 
+          host: 'ftp.192.168.10.3', // ホスト名 
+          user: 'u', // ユーザー名 
+          password: 'nag4t', // パスワード 
+          port: 44044 // ポート番号 
+        }; 
+ 
+        // FTPクライアントライブラリを使用 
+        const client = new FTP(ftpConfig); // FTPクライアントライブラリを使用（例：jsftp） 
+ 
+        client.auth(ftpConfig.user, ftpConfig.password, (error) => { 
+          if (error) { 
+            console.error('FTP認証エラー:', error); 
+            return; 
+          } 
+ 
+          client.put(file, newFileName, (error) => { 
+            if (error) { 
+              console.error('FTPアップロードエラー:', error); 
+              return; 
+            } 
+ 
+            // ファイルのURLを生成 
+            const fileUrl = `ftp://${ftpConfig.host}/${newFileName}`;  
+            fileUrlSpan.textContent = fileUrl; 
+ 
+            // 10日後にファイルを削除する処理 (setTimeoutを使用) 
+            setTimeout(() => { 
+              client.delete(newFileName, (error) => { 
+                if (error) { 
+                  console.error('FTPファイル削除エラー:', error); 
+                } else { 
+                  console.log('FTPファイル削除完了'); 
+                } 
+                client.end(); 
+              }); 
+            }, 10 * 24 * 60 * 60 * 1000); // 10日後（ミリ秒） 
+          }); 
+        }); 
+      } 
+    }); 
+ 
+    // ランダムな文字列を生成する関数 
+    function generateRandomString(length) { 
+      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!-=+'; 
+      let result = ''; 
+      for (let i = 0; i < length; i++) { 
+        result += characters.charAt(Math.floor(Math.random() * characters.length)); 
+      } 
+      return result; 
+    } 
+  </script> 
+ 
+</body> 
+</html>
